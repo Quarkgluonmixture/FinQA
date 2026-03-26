@@ -5,24 +5,29 @@ Reproducible zero-shot baseline evaluation pipeline for COMP0087.
 ## Setup
 
 ```bash
-cd /workspace/finqa_baseline
+cd /home/jiaming/workspace/FinQA/finqa_baseline
 bash setup.sh
 source .venv/bin/activate
 ```
 
-If FinQA loading fails due datasets script policy:
+## Cache (important on shared machines)
 
 ```bash
-pip install -U "datasets<4"
+mkdir -p /home/jiaming/workspace/.cache/huggingface/{hub,transformers}
+export HF_HOME=/home/jiaming/workspace/.cache/huggingface
+export HUGGINGFACE_HUB_CACHE=$HF_HOME/hub
+export TRANSFORMERS_CACHE=$HF_HOME/transformers
 ```
 
-## Cache (important on RunPod/SageMaker)
+## DGX Spark quirks (this host)
+
+If you run on this machine, keep these set:
 
 ```bash
-mkdir -p /workspace/.cache/huggingface
-export HF_HOME=/workspace/.cache/huggingface
-export HUGGINGFACE_HUB_CACHE=/workspace/.cache/huggingface/hub
-export TRANSFORMERS_CACHE=/workspace/.cache/huggingface/transformers
+export CUDA_MPS_PIPE_DIRECTORY=""
+export CUDA_MPS_LOG_DIRECTORY=""
+export PYTORCH_NVML_BASED_CUDA_CHECK=1
+export HF_HUB_DISABLE_XET=1
 ```
 
 ## New baseline defaults (FinQA)
@@ -43,7 +48,7 @@ python eval_finqa.py \
   --model_name Qwen/Qwen3-8B \
   --split test \
   --setting oracle \
-  --cache_dir /workspace/.cache/huggingface
+  --cache_dir /home/jiaming/workspace/.cache/huggingface
 ```
 
 ```bash
@@ -51,7 +56,7 @@ python eval_finqa.py \
   --model_name Qwen/Qwen3-8B \
   --split test \
   --setting full \
-  --cache_dir /workspace/.cache/huggingface
+  --cache_dir /home/jiaming/workspace/.cache/huggingface
 ```
 
 Override evaluator/format if needed:
@@ -70,6 +75,30 @@ Runs:
 
 ```bash
 bash run_all_evals.sh
+```
+
+## Robust verification matrix (thinking true + false)
+
+Runs:
+
+1. regression checks
+2. 8 FinQA runs (`Qwen3-8B/4B x oracle/full x thinking true/false`)
+3. per-mode reports + robust verification summary
+
+```bash
+bash run_verification_matrix.sh
+```
+
+Main outputs:
+
+- `results/robust_verification_report.md`
+- `results/robust_verification_summary.json`
+
+## GPU guard auto-start (optional)
+
+```bash
+nohup bash gpu_guard_autorun.sh > logs/gpu_guard_console.log 2>&1 &
+echo $! > logs/gpu_guard_autorun.pid
 ```
 
 ## Outputs
