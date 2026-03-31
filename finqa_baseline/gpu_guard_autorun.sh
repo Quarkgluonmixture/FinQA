@@ -17,6 +17,7 @@ set -euo pipefail
 
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 cd "${ROOT_DIR}"
+source "${ROOT_DIR}/scripts/apply_dgx_spark_quirks.sh"
 
 GPU_INDEX="${GPU_INDEX:-0}"
 CHECK_INTERVAL_SEC="${CHECK_INTERVAL_SEC:-30}"
@@ -93,12 +94,7 @@ done
 log "GPU condition satisfied; launching run_verification_matrix.sh"
 
 source .venv/bin/activate
-nohup env \
-  CUDA_MPS_PIPE_DIRECTORY="" \
-  CUDA_MPS_LOG_DIRECTORY="" \
-  PYTORCH_NVML_BASED_CUDA_CHECK=1 \
-  HF_HUB_DISABLE_XET=1 \
-  ./run_verification_matrix.sh \
+nohup ./run_verification_matrix.sh \
   > "${RUN_LOG}" 2>&1 &
 
 run_pid="$!"

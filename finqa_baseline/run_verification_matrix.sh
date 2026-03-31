@@ -13,6 +13,7 @@ set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 cd "${SCRIPT_DIR}"
+source "${SCRIPT_DIR}/scripts/apply_dgx_spark_quirks.sh"
 
 PYTHON_BIN="${PYTHON_BIN:-${SCRIPT_DIR}/.venv/bin/python}"
 if [[ ! -x "${PYTHON_BIN}" ]]; then
@@ -32,6 +33,8 @@ LOG_DIR="${LOG_DIR:-logs}"
 SPLIT="${SPLIT:-test}"
 SEED="${SEED:-42}"
 MAX_NEW_TOKENS="${MAX_NEW_TOKENS:-256}"
+# thinking=true needs much more room for the internal chain + final answer
+MAX_NEW_TOKENS_THINKING="${MAX_NEW_TOKENS_THINKING:-2048}"
 NUM_SAMPLES="${NUM_SAMPLES:--1}"
 
 EVALUATOR="math_verify"
@@ -48,12 +51,6 @@ mkdir -p "${RESULTS_ROOT}" "${LOG_DIR}"
 export HF_HOME="${CACHE_DIR}"
 export HUGGINGFACE_HUB_CACHE="${CACHE_DIR}/hub"
 export TRANSFORMERS_CACHE="${CACHE_DIR}/transformers"
-# DGX Spark machine quirks: these reduce CUDA init stalls/hangs on this host.
-export CUDA_MPS_PIPE_DIRECTORY=""
-export CUDA_MPS_LOG_DIRECTORY=""
-export PYTORCH_NVML_BASED_CUDA_CHECK=1
-# Avoid xet CAS range errors (HTTP 416) observed on this DGX host for large model shards.
-export HF_HUB_DISABLE_XET=1
 
 sanitize_model_name() {
   local model="$1"
@@ -74,8 +71,11 @@ run_single_eval() {
   mkdir -p "${results_dir}"
 
   local thinking_flag="--enable_thinking"
+  local max_tokens="${MAX_NEW_TOKENS}"
   if [[ "${thinking}" == "false" ]]; then
     thinking_flag="--no-enable_thinking"
+  else
+    max_tokens="${MAX_NEW_TOKENS_THINKING}"
   fi
 
   echo "========================================"
@@ -92,7 +92,7 @@ run_single_eval() {
     --cache_dir "${CACHE_DIR}" \
     --results_dir "${results_dir}" \
     --seed "${SEED}" \
-    --max_new_tokens "${MAX_NEW_TOKENS}" \
+    --max_new_tokens "${max_tokens}" \
     --num_samples "${NUM_SAMPLES}" \
     --evaluator "${EVALUATOR}" \
     --answer_format "${ANSWER_FORMAT}" \

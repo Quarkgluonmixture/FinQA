@@ -13,6 +13,7 @@ set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 cd "${SCRIPT_DIR}"
+source "${SCRIPT_DIR}/scripts/apply_dgx_spark_quirks.sh"
 
 LOG_DIR="${LOG_DIR:-logs}"
 LOOP_LOG="${LOOP_LOG:-${LOG_DIR}/run_forever_no_guard.log}"
@@ -30,11 +31,6 @@ if [[ ! -x ".venv/bin/python" ]]; then
 fi
 
 source .venv/bin/activate
-
-export CUDA_MPS_PIPE_DIRECTORY=""
-export CUDA_MPS_LOG_DIRECTORY=""
-export PYTORCH_NVML_BASED_CUDA_CHECK=1
-export HF_HUB_DISABLE_XET=1
 
 attempt=0
 while true; do

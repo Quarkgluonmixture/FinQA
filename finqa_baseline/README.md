@@ -19,9 +19,15 @@ export HUGGINGFACE_HUB_CACHE=$HF_HOME/hub
 export TRANSFORMERS_CACHE=$HF_HOME/transformers
 ```
 
-## DGX Spark quirks (this host)
+## DGX Spark quirks (authoritative)
 
-If you run on this machine, keep these set:
+All runs on this machine must follow:
+- `/home/jiaming/workspace/FinQA/DGX_SPARK_MACHINE_QUIRKS.md`
+
+The run scripts now auto-apply the required env via:
+- `scripts/apply_dgx_spark_quirks.sh`
+
+Equivalent variables:
 
 ```bash
 export CUDA_MPS_PIPE_DIRECTORY=""
@@ -63,18 +69,6 @@ Override evaluator/format if needed:
 
 ```bash
 python eval_finqa.py ... --evaluator numeric_legacy --answer_format plain_numeric
-```
-
-## One-command pipeline (recommended)
-
-Runs:
-
-1. regression checks (`FINAL_ANSWER` extraction + Math-Verify)
-2. 4 FinQA runs (`Qwen3-8B/4B x oracle/full`)
-3. final markdown report
-
-```bash
-bash run_all_evals.sh
 ```
 
 ## Robust verification matrix (thinking true + false)

@@ -338,29 +338,66 @@ def main() -> None:
     if args.num_samples > 0:
         ds = ds.select(range(min(args.num_samples, len(ds))))
 
+    safe_model = sanitize_model_name(args.model_name)
+    jsonl_path = os.path.join(args.results_dir, f"finqa_{safe_model}_{args.setting}_{args.split}.jsonl")
+
+    # --- checkpoint: load previously completed rows ---
+    rows: List[Dict[str, Any]] = []
+    if os.path.exists(jsonl_path):
+        with open(jsonl_path, "r", encoding="utf-8") as _ckpt_f:
+            for _line in _ckpt_f:
+                _line = _line.strip()
+                if _line:
+                    rows.append(json.loads(_line))
+        if rows:
+            print(f"[checkpoint] Resuming: {len(rows)}/{len(ds)} samples already done, skipping.")
+
+    n_skip = len(rows)
+
+    n_total = 0
+    n_correct_main = 0
+    n_parse_fail_main = 0
+    n_correct_mathverify = 0
+    n_parse_fail_mathverify = 0
+    n_correct_legacy = 0
+    n_correct_legacy_base = 0
+    n_parse_fail_legacy = 0
+    n_percent_recovered = 0
+    tag_status_counts: Dict[str, int] = {"closed": 0, "open_only": 0, "absent": 0}
+
+    # recompute counters from checkpoint rows
+    for _row in rows:
+        n_total += 1
+        if _row.get("correct"):
+            n_correct_main += 1
+        if _row.get("parse_fail"):
+            n_parse_fail_main += 1
+        if _row.get("correct_mathverify"):
+            n_correct_mathverify += 1
+        if _row.get("parse_fail_mathverify"):
+            n_parse_fail_mathverify += 1
+        if _row.get("correct_legacy"):
+            n_correct_legacy += 1
+        if _row.get("correct_legacy_base"):
+            n_correct_legacy_base += 1
+        if _row.get("parse_fail_legacy"):
+            n_parse_fail_legacy += 1
+        if _row.get("percent_recovered"):
+            n_percent_recovered += 1
+        _ts = _row.get("tag_status", "absent")
+        tag_status_counts[_ts] = tag_status_counts.get(_ts, 0) + 1
+
     tokenizer, model = init_model(args.model_name, cache_dir=args.cache_dir, trust_remote_code=args.trust_remote_code)
     system_prompt = build_system_instruction(
         answer_format=args.answer_format,
         final_answer_tag=args.final_answer_tag,
     )
 
-    rows: List[Dict[str, Any]] = []
-    n_total = 0
+    ds_remaining = ds.select(range(n_skip, len(ds))) if n_skip > 0 else ds
 
-    n_correct_main = 0
-    n_parse_fail_main = 0
+    _jsonl_out = open(jsonl_path, "a", encoding="utf-8")
 
-    n_correct_mathverify = 0
-    n_parse_fail_mathverify = 0
-
-    n_correct_legacy = 0
-    n_correct_legacy_base = 0
-    n_parse_fail_legacy = 0
-    n_percent_recovered = 0
-
-    tag_status_counts: Dict[str, int] = {"closed": 0, "open_only": 0, "absent": 0}
-
-    for ex in tqdm(ds, total=len(ds), desc="Evaluating FinQA"):
+    for ex in tqdm(ds_remaining, total=len(ds), initial=n_skip, desc="Evaluating FinQA"):
         question = str(ex.get("question", ""))
         gold = normalize_gold_numeric(ex)
         gold_text = _resolve_gold_text(ex, gold)
@@ -438,30 +475,33 @@ def main() -> None:
         if correct_main:
             n_correct_main += 1
 
-        rows.append(
-            {
-                "question": question,
-                "gold": gold,
-                "gold_text": gold_text,
-                "raw_output": raw_output,
-                "final_answer_text": final_answer_text,
-                "tag_status": tag_status,
-                "pred": adjusted_legacy_pred,
-                "pred_legacy_raw": legacy_pred,
-                "pred_legacy_adjusted": adjusted_legacy_pred,
-                "correct": correct_main,
-                "correct_mathverify": correct_mathverify,
-                "correct_legacy": correct_legacy,
-                "correct_legacy_base": correct_legacy_base,
-                "parse_fail": parse_fail_main,
-                "parse_fail_mathverify": parse_fail_mathverify,
-                "parse_fail_legacy": parse_fail_legacy,
-                "percent_recovered": percent_recovered,
-                "mathverify_error": mathverify_error,
-                "evaluator": args.evaluator,
-            }
-        )
+        _row = {
+            "question": question,
+            "gold": gold,
+            "gold_text": gold_text,
+            "raw_output": raw_output,
+            "final_answer_text": final_answer_text,
+            "tag_status": tag_status,
+            "pred": adjusted_legacy_pred,
+            "pred_legacy_raw": legacy_pred,
+            "pred_legacy_adjusted": adjusted_legacy_pred,
+            "correct": correct_main,
+            "correct_mathverify": correct_mathverify,
+            "correct_legacy": correct_legacy,
+            "correct_legacy_base": correct_legacy_base,
+            "parse_fail": parse_fail_main,
+            "parse_fail_mathverify": parse_fail_mathverify,
+            "parse_fail_legacy": parse_fail_legacy,
+            "percent_recovered": percent_recovered,
+            "mathverify_error": mathverify_error,
+            "evaluator": args.evaluator,
+        }
+        rows.append(_row)
+        _jsonl_out.write(json.dumps(_row, ensure_ascii=False) + "\n")
+        _jsonl_out.flush()
         n_total += 1
+
+    _jsonl_out.close()
 
     accuracy_main = (n_correct_main / n_total) if n_total else 0.0
     parse_fail_rate_main = (n_parse_fail_main / n_total) if n_total else 0.0
@@ -472,10 +512,6 @@ def main() -> None:
     accuracy_legacy = (n_correct_legacy / n_total) if n_total else 0.0
     accuracy_legacy_base = (n_correct_legacy_base / n_total) if n_total else 0.0
     parse_fail_rate_legacy = (n_parse_fail_legacy / n_total) if n_total else 0.0
-
-    safe_model = sanitize_model_name(args.model_name)
-    jsonl_path = os.path.join(args.results_dir, f"finqa_{safe_model}_{args.setting}_{args.split}.jsonl")
-    save_jsonl(jsonl_path, rows)
 
     error_cases_path = os.path.join(args.results_dir, "error_cases.md")
     with open(error_cases_path, "w", encoding="utf-8") as f:
