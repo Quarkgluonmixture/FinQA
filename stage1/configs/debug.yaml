@@ -1,0 +1,56 @@
+
+run_name: debug_run
+seed: 42
+
+data:
+  train_file: data/debug/train.jsonl
+  dev_file: data/debug/train.jsonl
+  max_train_samples: 8
+
+model:
+  model_name_or_path: Qwen/Qwen2.5-0.5B-Instruct
+  use_qlora: false
+  lora_r: 16
+  lora_alpha: 32
+  lora_dropout: 0.05
+  lora_target_modules:
+    - q_proj
+    - v_proj
+
+preprocessing:
+  enabled: true
+  thinking: true
+  answer_prefix: "FINAL_ANSWER:"
+
+training:
+  output_dir: outputs/debug_run
+  max_steps: 5
+  num_train_epochs: 1
+  per_device_train_batch_size: 1
+  gradient_accumulation_steps: 1
+  learning_rate: 0.0002
+  warmup_steps: 0
+  lr_scheduler_type: cosine
+  max_seq_length: 512
+  logging_steps: 1
+  save_strategy: steps
+  save_steps: 5
+  save_total_limit: 2
+  report_to: none
+
+inference:
+  enabled: true
+  checkpoint_dir: outputs/debug_run/checkpoint-last
+  input_file: data/debug/train.jsonl
+  output_file: outputs/debug_run/infer_predictions.jsonl
+  summary_file: outputs/debug_run/infer_summary.json
+  max_samples: 3
+  mode: smoke_echo_gold
+
+logging:
+  log_dir: outputs/debug_run/logs
+  train_log_file: outputs/debug_run/logs/train.log
+  infer_log_file: outputs/debug_run/logs/infer.log
+
+run_infer_after_train: true
+#run_infer_after_train: false
