@@ -1,4 +1,4 @@
-from typing import Iterable, List, Sequence
+from typing import Iterable, List, Sequence, Tuple
 
 
 def build_system_instruction(
@@ -114,12 +114,7 @@ def _final_answer_instruction(answer_format: str, final_answer_tag: str) -> str:
     return "Return ONLY the final numeric answer; no explanation; no units."
 
 
-def build_finqa_prompt(
-    example: dict,
-    setting: str,
-    answer_format: str = "plain_numeric",
-    final_answer_tag: str = "FINAL_ANSWER",
-) -> str:
+def _build_finqa_context_and_question(example: dict, setting: str) -> Tuple[str, str]:
     question = str(example.get("question", "")).strip()
     pre_text = _safe_join_lines(example.get("pre_text") or [])
     post_text = _safe_join_lines(example.get("post_text") or [])
@@ -139,6 +134,16 @@ def build_finqa_prompt(
                 post_text,
             ]
         )
+    return context, question
+
+
+def build_finqa_prompt(
+    example: dict,
+    setting: str,
+    answer_format: str = "plain_numeric",
+    final_answer_tag: str = "FINAL_ANSWER",
+) -> str:
+    context, question = _build_finqa_context_and_question(example=example, setting=setting)
 
     prompt = (
         f"Context:\n{context}\n\n"
@@ -146,6 +151,29 @@ def build_finqa_prompt(
         f"{_final_answer_instruction(answer_format=answer_format, final_answer_tag=final_answer_tag)}"
     )
     return prompt
+
+
+def build_finqa_trainstyle_prompt(
+    example: dict,
+    setting: str,
+    final_answer_tag: str = "FINAL_ANSWER",
+) -> str:
+    context, question = _build_finqa_context_and_question(example=example, setting=setting)
+    instruction = (
+        "Solve the financial numerical reasoning problem. "
+        f"Return exactly one tagged final answer as [{final_answer_tag}]...[/"
+        f"{final_answer_tag}] in the output."
+    )
+
+    return (
+        "Instruction:\n"
+        f"{instruction}\n\n"
+        "Input:\n"
+        "Context:\n"
+        f"{context}\n\n"
+        "Question:\n"
+        f"{question}\n"
+    )
 
 
 def build_carbonpdf_prompt(

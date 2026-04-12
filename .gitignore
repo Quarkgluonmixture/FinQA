@@ -43,15 +43,16 @@ finqa_baseline/logs/*console*.log
 finqa_baseline/results/sanity/
 finqa_baseline/results/smoke/
 finqa_baseline/results/thinking_true/
-finqa_baseline/results/thinking_false/
 finqa_baseline/results/sft_matrix/
 finqa_baseline/results/robust_verification_report.md
 finqa_baseline/results/robust_verification_summary.json
 finqa_baseline/results_recovered/
 
-# Stage1 generated runtime artifacts
+# Stage1 large artifacts (checkpoints ~3.2G, keep ignored)
 stage1/logs/
 stage1/configs/generated/
 stage1/outputs/
 
+# Local-only files
 DGX_SPARK_MACHINE_QUIRKS.md
+.claude/

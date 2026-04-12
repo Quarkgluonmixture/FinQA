@@ -1,0 +1,40 @@
+{
+  "runs": [
+    {
+      "task": "finqa",
+      "model": "Qwen/Qwen3-8B",
+      "adapter_path": "/home/jiaming/workspace/FinQA/stage1/outputs/sft_clean_strict/8b_clean_1000_answer_only/checkpoint-last",
+      "tokenizer_source": "/home/jiaming/workspace/FinQA/stage1/outputs/sft_clean_strict/8b_clean_1000_answer_only/checkpoint-last",
+      "split": "test",
+      "setting": "oracle",
+      "num_samples": 1147,
+      "max_new_tokens": 256,
+      "atol": 0.001,
+      "rtol": 0.001,
+      "enable_thinking": false,
+      "prompt_protocol": "stage1_train_text",
+      "evaluator": "math_verify",
+      "answer_format": "final_answer_tag",
+      "final_answer_tag": "FINAL_ANSWER",
+      "percent_auto_scale": true,
+      "accuracy": 0.12205754141238012,
+      "parse_fail_rate": 0.09154315605928509,
+      "accuracy_mathverify": 0.12205754141238012,
+      "accuracy_legacy": 0.12467306015693112,
+      "accuracy_legacy_base": 0.0993897122929381,
+      "accuracy_base": 0.0993897122929381,
+      "accuracy_adjusted": 0.12467306015693112,
+      "parse_fail_rate_mathverify": 0.09154315605928509,
+      "parse_fail_rate_legacy": 0.07933740191804708,
+      "parse_fail_mathverify": 105,
+      "parse_fail_legacy": 91,
+      "percent_recovered_count": 29,
+      "tag_status_counts": {
+        "closed": 1133,
+        "open_only": 11,
+        "absent": 3
+      },
+      "jsonl": "/home/jiaming/workspace/FinQA/stage1/../finqa_baseline/results/sft_clean_strict_prompt_aligned_eval/8b_clean_1000_answer_only/finqa_Qwen_Qwen3-8B_oracle_test.jsonl"
+    }
+  ]
+}

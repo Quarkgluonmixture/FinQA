@@ -13,6 +13,7 @@ from transformers import AutoModelForCausalLM, AutoTokenizer
 from utils import (
     build_error_cases_markdown,
     build_finqa_prompt,
+    build_finqa_trainstyle_prompt,
     build_system_instruction,
     ensure_dir,
     ensure_mathverify_installed,
@@ -70,6 +71,17 @@ def parse_args() -> argparse.Namespace:
         choices=["final_answer_tag", "plain_numeric"],
         default="final_answer_tag",
         help="Model output format policy.",
+    )
+    p.add_argument(
+        "--prompt_protocol",
+        type=str,
+        choices=["chat_default", "stage1_train_text"],
+        default="chat_default",
+        help=(
+            "Prompt construction/input path. "
+            "`chat_default` keeps system+user chat formatting. "
+            "`stage1_train_text` uses Stage-1 training-aligned plain text prompt."
+        ),
     )
     p.add_argument(
         "--final_answer_tag",
@@ -218,7 +230,12 @@ def format_messages(system_prompt: str, user_prompt: str) -> List[Dict[str, str]
     ]
 
 
-def _prepare_model_inputs(tokenizer, model, messages: List[Dict[str, str]], enable_thinking: bool) -> Dict[str, Any]:
+def _prepare_model_inputs_from_messages(
+    tokenizer,
+    model,
+    messages: List[Dict[str, str]],
+    enable_thinking: bool,
+) -> Dict[str, Any]:
     if hasattr(tokenizer, "apply_chat_template"):
         template_kwargs = dict(
             tokenize=True,
@@ -258,14 +275,36 @@ def _prepare_model_inputs(tokenizer, model, messages: List[Dict[str, str]], enab
     return {k: (v.to(model.device) if hasattr(v, "to") else v) for k, v in model_inputs.items()}
 
 
+def _prepare_model_inputs_from_text(tokenizer, model, prompt_text: str) -> Dict[str, Any]:
+    model_inputs = tokenizer(prompt_text, return_tensors="pt")
+
+    if hasattr(model_inputs, "data"):
+        model_inputs = dict(model_inputs)
+    elif not isinstance(model_inputs, dict):
+        raise TypeError(f"Unsupported model input type from text prompt: {type(model_inputs)}")
+
+    return {k: (v.to(model.device) if hasattr(v, "to") else v) for k, v in model_inputs.items()}
+
+
 def generate_one(
     tokenizer,
     model,
-    messages: List[Dict[str, str]],
     max_new_tokens: int,
     enable_thinking: bool,
+    messages: Optional[List[Dict[str, str]]] = None,
+    prompt_text: str = "",
 ) -> str:
-    model_inputs = _prepare_model_inputs(tokenizer, model, messages, enable_thinking=enable_thinking)
+    if prompt_text:
+        model_inputs = _prepare_model_inputs_from_text(tokenizer, model, prompt_text=prompt_text)
+    else:
+        if not messages:
+            raise ValueError("Either messages or prompt_text must be provided.")
+        model_inputs = _prepare_model_inputs_from_messages(
+            tokenizer,
+            model,
+            messages,
+            enable_thinking=enable_thinking,
+        )
     input_len = model_inputs["input_ids"].shape[-1]
 
     with torch.no_grad():
@@ -431,10 +470,12 @@ def main() -> None:
         trust_remote_code=args.trust_remote_code,
         adapter_path=args.adapter_path,
     )
-    system_prompt = build_system_instruction(
-        answer_format=args.answer_format,
-        final_answer_tag=args.final_answer_tag,
-    )
+    system_prompt = ""
+    if args.prompt_protocol == "chat_default":
+        system_prompt = build_system_instruction(
+            answer_format=args.answer_format,
+            final_answer_tag=args.final_answer_tag,
+        )
 
     ds_remaining = ds.select(range(n_skip, len(ds))) if n_skip > 0 else ds
 
@@ -444,21 +485,34 @@ def main() -> None:
         question = str(ex.get("question", ""))
         gold = normalize_gold_numeric(ex)
         gold_text = _resolve_gold_text(ex, gold)
-        prompt = build_finqa_prompt(
-            ex,
-            setting=args.setting,
-            answer_format=args.answer_format,
-            final_answer_tag=args.final_answer_tag,
-        )
-        messages = format_messages(system_prompt, prompt)
-
-        raw_output = generate_one(
-            tokenizer,
-            model,
-            messages,
-            max_new_tokens=args.max_new_tokens,
-            enable_thinking=args.enable_thinking,
-        )
+        if args.prompt_protocol == "stage1_train_text":
+            prompt_text = build_finqa_trainstyle_prompt(
+                ex,
+                setting=args.setting,
+                final_answer_tag=args.final_answer_tag,
+            )
+            raw_output = generate_one(
+                tokenizer,
+                model,
+                max_new_tokens=args.max_new_tokens,
+                enable_thinking=args.enable_thinking,
+                prompt_text=prompt_text,
+            )
+        else:
+            prompt = build_finqa_prompt(
+                ex,
+                setting=args.setting,
+                answer_format=args.answer_format,
+                final_answer_tag=args.final_answer_tag,
+            )
+            messages = format_messages(system_prompt, prompt)
+            raw_output = generate_one(
+                tokenizer,
+                model,
+                max_new_tokens=args.max_new_tokens,
+                enable_thinking=args.enable_thinking,
+                messages=messages,
+            )
 
         extraction = extract_final_answer_text(
             raw_output=raw_output,
@@ -572,6 +626,7 @@ def main() -> None:
         "atol": args.atol,
         "rtol": args.rtol,
         "enable_thinking": args.enable_thinking,
+        "prompt_protocol": args.prompt_protocol,
         "evaluator": args.evaluator,
         "answer_format": args.answer_format,
         "final_answer_tag": args.final_answer_tag,

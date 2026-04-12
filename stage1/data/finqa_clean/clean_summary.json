@@ -1,0 +1,233 @@
+{
+  "input_train": "/home/jiaming/workspace/FinQA/stage1/data/unified/derived/train_norm.jsonl",
+  "input_dev": "/home/jiaming/workspace/FinQA/stage1/data/unified/derived/dev_norm.jsonl",
+  "policy": {
+    "source_dataset": "finqa",
+    "require_formula_exec_ok": true,
+    "require_scale_relation": "consistent"
+  },
+  "counts": {
+    "train_total": 25185,
+    "train_kept": 3277,
+    "dev_total": 3417,
+    "dev_kept": 475
+  },
+  "drop_reasons": {
+    "train": {
+      "drop_non_target_source": 18934,
+      "kept": 3277,
+      "drop_scale_relation_mismatch": 2778,
+      "drop_formula_exec_fail": 196
+    },
+    "dev": {
+      "drop_non_target_source": 2534,
+      "kept": 475,
+      "drop_scale_relation_mismatch": 373,
+      "drop_formula_exec_fail": 35
+    }
+  },
+  "bucket_counts": {
+    "train_full": {
+      "double": 873,
+      "single": 1962,
+      "multi": 442
+    },
+    "dev_full": {
+      "single": 281,
+      "double": 139,
+      "multi": 55
+    },
+    "train_debug_50": {
+      "single": 30,
+      "double": 13,
+      "multi": 7
+    }
+  },
+  "subsets": {
+    "250": {
+      "size": 250,
+      "bucket_counts": {
+        "single": 150,
+        "double": 66,
+        "multi": 34
+      }
+    },
+    "1000": {
+      "size": 1000,
+      "bucket_counts": {
+        "single": 599,
+        "double": 266,
+        "multi": 135
+      }
+    }
+  },
+  "nested_check": {
+    "250_in_1000": true
+  },
+  "spot_check": {
+    "n": 20,
+    "fail": 0,
+    "rows": [
+      {
+        "id": "AMT/2003/page_85.pdf-2",
+        "program_steps_bucket": "double",
+        "scale_relation": "consistent",
+        "target_answer": "3168159.0",
+        "formula_value": 3168159.0,
+        "spot_ok": true
+      },
+      {
+        "id": "EMR/2017/page_54.pdf-2",
+        "program_steps_bucket": "single",
+        "scale_relation": "consistent",
+        "target_answer": "0.11262",
+        "formula_value": 0.1126207729468599,
+        "spot_ok": true
+      },
+      {
+        "id": "JPM/2018/page_149.pdf-2",
+        "program_steps_bucket": "single",
+        "scale_relation": "consistent",
+        "target_answer": "2310.0",
+        "formula_value": 2310.0,
+        "spot_ok": true
+      },
+      {
+        "id": "UNP/2010/page_24.pdf-3",
+        "program_steps_bucket": "single",
+        "scale_relation": "consistent",
+        "target_answer": "716.0",
+        "formula_value": 716.0,
+        "spot_ok": true
+      },
+      {
+        "id": "SLG/2012/page_61.pdf-2",
+        "program_steps_bucket": "single",
+        "scale_relation": "consistent",
+        "target_answer": "-284324.0",
+        "formula_value": -284324.0,
+        "spot_ok": true
+      },
+      {
+        "id": "JPM/2016/page_141.pdf-2",
+        "program_steps_bucket": "single",
+        "scale_relation": "consistent",
+        "target_answer": "19.0",
+        "formula_value": 19.0,
+        "spot_ok": true
+      },
+      {
+        "id": "UNP/2014/page_32.pdf-2",
+        "program_steps_bucket": "single",
+        "scale_relation": "consistent",
+        "target_answer": "26.07",
+        "formula_value": 26.07,
+        "spot_ok": true
+      },
+      {
+        "id": "ETR/2016/page_267.pdf-2",
+        "program_steps_bucket": "double",
+        "scale_relation": "consistent",
+        "target_answer": "2131.0",
+        "formula_value": 2131.0,
+        "spot_ok": true
+      },
+      {
+        "id": "IP/2009/page_34.pdf-3",
+        "program_steps_bucket": "single",
+        "scale_relation": "consistent",
+        "target_answer": "8129.0",
+        "formula_value": 8129.0,
+        "spot_ok": true
+      },
+      {
+        "id": "EW/2014/page_35.pdf-2",
+        "program_steps_bucket": "multi",
+        "scale_relation": "consistent",
+        "target_answer": "0.8819",
+        "formula_value": 0.8818999999999999,
+        "spot_ok": true
+      },
+      {
+        "id": "ETR/2016/page_175.pdf-1",
+        "program_steps_bucket": "double",
+        "scale_relation": "consistent",
+        "target_answer": "881.7444",
+        "formula_value": 881.7443999999999,
+        "spot_ok": true
+      },
+      {
+        "id": "IP/2005/page_29.pdf-3",
+        "program_steps_bucket": "single",
+        "scale_relation": "consistent",
+        "target_answer": "0.07424",
+        "formula_value": 0.0742393509127789,
+        "spot_ok": true
+      },
+      {
+        "id": "GS/2012/page_64.pdf-2",
+        "program_steps_bucket": "single",
+        "scale_relation": "consistent",
+        "target_answer": "0.02525",
+        "formula_value": 0.02524953288743264,
+        "spot_ok": true
+      },
+      {
+        "id": "V/2013/page_116.pdf-1",
+        "program_steps_bucket": "multi",
+        "scale_relation": "consistent",
+        "target_answer": "131.0",
+        "formula_value": 131.0,
+        "spot_ok": true
+      },
+      {
+        "id": "MAA/2017/page_18.pdf-4",
+        "program_steps_bucket": "single",
+        "scale_relation": "consistent",
+        "target_answer": "41.0",
+        "formula_value": 41.0,
+        "spot_ok": true
+      },
+      {
+        "id": "MRO/2006/page_128.pdf-2",
+        "program_steps_bucket": "double",
+        "scale_relation": "consistent",
+        "target_answer": "6844.29054",
+        "formula_value": 6844.290538628431,
+        "spot_ok": true
+      },
+      {
+        "id": "ETR/2008/page_376.pdf-4",
+        "program_steps_bucket": "single",
+        "scale_relation": "consistent",
+        "target_answer": "-1.4",
+        "formula_value": -1.400000000000034,
+        "spot_ok": true
+      },
+      {
+        "id": "VNO/2006/page_95.pdf-2",
+        "program_steps_bucket": "single",
+        "scale_relation": "consistent",
+        "target_answer": "16.5924",
+        "formula_value": 16.5924,
+        "spot_ok": true
+      },
+      {
+        "id": "SNPS/2012/page_62.pdf-3",
+        "program_steps_bucket": "single",
+        "scale_relation": "consistent",
+        "target_answer": "0.57478",
+        "formula_value": 0.574779093985468,
+        "spot_ok": true
+      },
+      {
+        "id": "AAL/2015/page_183.pdf-3",
+        "program_steps_bucket": "single",
+        "scale_relation": "consistent",
+        "target_answer": "0.65644",
+        "formula_value": 0.656439393939394,
+        "spot_ok": true
+      }
+    ]
+  }
+}

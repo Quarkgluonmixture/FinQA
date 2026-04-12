@@ -1,0 +1,40 @@
+{
+  "runs": [
+    {
+      "task": "finqa",
+      "model": "Qwen/Qwen3-8B",
+      "adapter_path": "",
+      "tokenizer_source": "Qwen/Qwen3-8B",
+      "split": "test",
+      "setting": "oracle",
+      "num_samples": 1147,
+      "max_new_tokens": 256,
+      "atol": 0.001,
+      "rtol": 0.001,
+      "enable_thinking": false,
+      "prompt_protocol": "stage1_train_text",
+      "evaluator": "math_verify",
+      "answer_format": "final_answer_tag",
+      "final_answer_tag": "FINAL_ANSWER",
+      "percent_auto_scale": true,
+      "accuracy": 0.06015693112467306,
+      "parse_fail_rate": 0.6442894507410637,
+      "accuracy_mathverify": 0.06015693112467306,
+      "accuracy_legacy": 0.07323452484742807,
+      "accuracy_legacy_base": 0.07149084568439407,
+      "accuracy_base": 0.07149084568439407,
+      "accuracy_adjusted": 0.07323452484742807,
+      "parse_fail_rate_mathverify": 0.6442894507410637,
+      "parse_fail_rate_legacy": 0.6303400174367916,
+      "parse_fail_mathverify": 739,
+      "parse_fail_legacy": 723,
+      "percent_recovered_count": 2,
+      "tag_status_counts": {
+        "closed": 852,
+        "open_only": 6,
+        "absent": 289
+      },
+      "jsonl": "/home/jiaming/workspace/FinQA/finqa_baseline/results/sft_clean_strict_prompt_aligned_eval/8b_zeroshot_prompt_aligned/finqa_Qwen_Qwen3-8B_oracle_test.jsonl"
+    }
+  ]
+}

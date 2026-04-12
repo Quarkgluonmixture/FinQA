@@ -1,0 +1,48 @@
+run_name: 8b_clean_full_answer_only_fullsteps
+seed: 42
+data:
+  train_file: /home/jiaming/workspace/FinQA/stage1/data/finqa_clean/train_full.jsonl
+  dev_file: /home/jiaming/workspace/FinQA/stage1/data/finqa_clean/dev_full.jsonl
+  max_train_samples: null
+model:
+  model_name_or_path: /home/jiaming/workspace/.cache/huggingface/models--Qwen--Qwen3-8B/snapshots/b968826d9c46dd6066d109eabc6255188de91218
+  use_qlora: true
+  lora_r: 16
+  lora_alpha: 32
+  lora_dropout: 0.05
+  lora_target_modules:
+  - q_proj
+  - v_proj
+preprocessing:
+  enabled: true
+  thinking: false
+  supervision_style: answer_only
+  final_answer_tag: FINAL_ANSWER
+training:
+  output_dir: /home/jiaming/workspace/FinQA/stage1/outputs/sft_clean_strict/8b_clean_full_answer_only_fullsteps
+  max_steps: -1
+  num_train_epochs: 2
+  per_device_train_batch_size: 4
+  gradient_accumulation_steps: 1
+  learning_rate: 0.0002
+  warmup_steps: 0
+  lr_scheduler_type: cosine
+  max_seq_length: 512
+  logging_steps: 5
+  save_strategy: steps
+  save_steps: 200
+  save_total_limit: 3
+  report_to: none
+inference:
+  enabled: true
+  checkpoint_dir: /home/jiaming/workspace/FinQA/stage1/outputs/sft_clean_strict/8b_clean_full_answer_only_fullsteps/checkpoint-last
+  input_file: /home/jiaming/workspace/FinQA/stage1/data/finqa_clean/dev_full.jsonl
+  output_file: /home/jiaming/workspace/FinQA/stage1/outputs/sft_clean_strict/8b_clean_full_answer_only_fullsteps/infer_predictions.jsonl
+  summary_file: /home/jiaming/workspace/FinQA/stage1/outputs/sft_clean_strict/8b_clean_full_answer_only_fullsteps/infer_summary.json
+  max_samples: 10
+  mode: smoke_echo_gold
+logging:
+  log_dir: /home/jiaming/workspace/FinQA/stage1/outputs/sft_clean_strict/8b_clean_full_answer_only_fullsteps/logs
+  train_log_file: /home/jiaming/workspace/FinQA/stage1/outputs/sft_clean_strict/8b_clean_full_answer_only_fullsteps/logs/train.log
+  infer_log_file: /home/jiaming/workspace/FinQA/stage1/outputs/sft_clean_strict/8b_clean_full_answer_only_fullsteps/logs/infer.log
+run_infer_after_train: false
