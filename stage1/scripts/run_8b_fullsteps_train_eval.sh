@@ -23,7 +23,7 @@ if [[ -f "${BASELINE_ROOT}/scripts/apply_dgx_spark_quirks.sh" ]]; then
   source "${BASELINE_ROOT}/scripts/apply_dgx_spark_quirks.sh"
 fi
 
-HF_CACHE_ROOT="${HF_CACHE_ROOT:-/home/jiaming/workspace/.cache/huggingface}"
+HF_CACHE_ROOT="${HF_CACHE_ROOT:-${HOME}/.cache/huggingface}"
 HF_HOME="${HF_HOME:-${HF_CACHE_ROOT}}"
 HUGGINGFACE_HUB_CACHE="${HUGGINGFACE_HUB_CACHE:-${HF_CACHE_ROOT}/hub}"
 TRANSFORMERS_CACHE="${TRANSFORMERS_CACHE:-${HF_CACHE_ROOT}/transformers}"
@@ -47,6 +47,25 @@ EVAL_RETRY_MAX=5
 EVAL_RETRY_SLEEP=30
 
 log() { echo "[$(date '+%Y-%m-%d %H:%M:%S')] $*"; }
+
+summary_metric() {
+  local summary_json="$1"
+  local metric_key="$2"
+  "${EVAL_PYTHON_BIN}" - "${STAGE1_ROOT}" "${summary_json}" "${metric_key}" <<'PY'
+import sys
+from pathlib import Path
+
+stage1_root = Path(sys.argv[1])
+summary_json = Path(sys.argv[2])
+metric_key = sys.argv[3]
+sys.path.insert(0, str(stage1_root / "scripts"))
+
+from summary_utils import latest_run_record
+
+record = latest_run_record(summary_json)
+print(record.get(metric_key))
+PY
+}
 
 mkdir -p "${RESULTS_ROOT}"
 
@@ -152,12 +171,16 @@ for protocol in chat text; do
   sfile="${RESULTS_ROOT}/${RUN_NAME}_${protocol}/summary.json"
   if [[ -f "${sfile}" ]]; then
     log "--- ${protocol} ---"
+    acc_base="$(summary_metric "${sfile}" "accuracy_base")"
+    acc_adjusted="$(summary_metric "${sfile}" "accuracy_adjusted")"
+    parse_fail="$(summary_metric "${sfile}" "parse_fail_rate")"
     python3 -c "
-import json
-d = json.load(open('${sfile}'))
-print(f'  acc_base:     {d[\"accuracy_base\"]:.4f}')
-print(f'  acc_adjusted: {d[\"accuracy_adjusted\"]:.4f}')
-print(f'  parse_fail:   {d[\"parse_fail_rate\"]:.4f}')
+acc_base = float('${acc_base}')
+acc_adjusted = float('${acc_adjusted}')
+parse_fail = float('${parse_fail}')
+print(f'  acc_base:     {acc_base:.4f}')
+print(f'  acc_adjusted: {acc_adjusted:.4f}')
+print(f'  parse_fail:   {parse_fail:.4f}')
 "
   fi
 done

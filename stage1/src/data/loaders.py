@@ -1,10 +1,17 @@
-import json
+from __future__ import annotations
 
-def load_data(path):
-    data = []
-    with open(path, "r", encoding="utf-8") as f:
-        for line in f:
+import json
+from pathlib import Path
+from typing import Any, Dict, List
+
+
+def load_data(path: str) -> List[Dict[str, Any]]:
+    """Load line-delimited JSON records from a JSONL file."""
+    records: List[Dict[str, Any]] = []
+    data_path = Path(path)
+    with data_path.open("r", encoding="utf-8") as file:
+        for line in file:
             line = line.strip()
             if line:
-                data.append(json.loads(line))
-    return data
+                records.append(json.loads(line))
+    return records

@@ -27,7 +27,7 @@ if [[ ! -x "${PYTHON_BIN}" ]]; then
   fi
 fi
 
-CACHE_DIR="${CACHE_DIR:-/home/jiaming/workspace/.cache/huggingface}"
+CACHE_DIR="${CACHE_DIR:-${HOME}/.cache/huggingface}"
 RESULTS_ROOT="${RESULTS_ROOT:-results}"
 LOG_DIR="${LOG_DIR:-logs}"
 SPLIT="${SPLIT:-test}"

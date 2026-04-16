@@ -1,6 +1,6 @@
 {
-  "input_train": "/home/jiaming/workspace/FinQA/stage1/data/unified/derived/train_norm.jsonl",
-  "input_dev": "/home/jiaming/workspace/FinQA/stage1/data/unified/derived/dev_norm.jsonl",
+  "input_train": "data/unified/derived/train_norm.jsonl",
+  "input_dev": "data/unified/derived/dev_norm.jsonl",
   "policy": {
     "source_dataset": "finqa",
     "require_formula_exec_ok": true,

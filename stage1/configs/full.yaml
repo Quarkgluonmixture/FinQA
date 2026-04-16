@@ -45,7 +45,7 @@ inference:
   output_file: outputs/full_run/infer_predictions.jsonl
   summary_file: outputs/full_run/infer_summary.json
   max_samples: 10
-  mode: smoke_echo_gold
+  mode: dry_run_echo_reference
 
 logging:
   log_dir: outputs/full_run/logs

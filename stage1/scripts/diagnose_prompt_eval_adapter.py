@@ -3,6 +3,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import os
 import subprocess
 import sys
 from dataclasses import dataclass
@@ -10,6 +11,9 @@ from pathlib import Path
 from typing import Any, Dict, List, Tuple
 
 from datasets import load_dataset
+
+DEFAULT_REPO_ROOT = Path(__file__).resolve().parents[2]
+DEFAULT_HF_CACHE = Path(os.getenv("HF_HOME", str(Path.home() / ".cache" / "huggingface")))
 
 
 @dataclass
@@ -21,9 +25,10 @@ class CompareResult:
 
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description="Run 3 diagnostics: format/raw_output/adapter compare")
-    parser.add_argument("--root", type=str, default="/home/jiaming/workspace/FinQA")
+    parser.add_argument("--root", type=str, default=str(DEFAULT_REPO_ROOT))
     parser.add_argument("--run_name", type=str, default="8b_clean_full_answer_only")
     parser.add_argument("--train_jsonl", type=str, default="")
+    parser.add_argument("--cache_dir", type=str, default=str(DEFAULT_HF_CACHE))
     parser.add_argument("--compare_samples", type=int, default=10)
     parser.add_argument("--max_new_tokens", type=int, default=128)
     parser.add_argument("--seed", type=int, default=42)
@@ -286,7 +291,8 @@ def main() -> None:
     open_rows = [r for r in _read_jsonl_rows(eval_jsonl, 200) if r.get("tag_status") != "closed"]
 
     build_system_instruction, build_finqa_prompt = _load_prompt_builders(baseline_root)
-    ds = load_dataset("dreamerdeo/finqa", split="test", cache_dir="/home/jiaming/workspace/.cache/huggingface")
+    cache_dir = Path(args.cache_dir)
+    ds = load_dataset("dreamerdeo/finqa", split="test", cache_dir=str(cache_dir))
     ex0 = ds[0]
     eval_system = build_system_instruction(answer_format="final_answer_tag", final_answer_tag="FINAL_ANSWER")
     eval_user = build_finqa_prompt(ex0, setting="oracle", answer_format="final_answer_tag", final_answer_tag="FINAL_ANSWER")
@@ -295,7 +301,7 @@ def main() -> None:
     base_jsonl, adpt_jsonl = _ensure_compare_jsonl(
         py_bin=py_bin,
         baseline_root=baseline_root,
-        cache_dir=Path("/home/jiaming/workspace/.cache/huggingface"),
+        cache_dir=cache_dir,
         adapter_path=adapter_path,
         compare_samples=int(args.compare_samples),
         max_new_tokens=int(args.max_new_tokens),

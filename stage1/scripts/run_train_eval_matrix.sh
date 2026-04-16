@@ -28,7 +28,7 @@ if [[ -f "${BASELINE_ROOT}/scripts/apply_dgx_spark_quirks.sh" ]]; then
 fi
 
 # Unified HF cache / auth settings for all child processes.
-HF_CACHE_ROOT="${HF_CACHE_ROOT:-/home/jiaming/workspace/.cache/huggingface}"
+HF_CACHE_ROOT="${HF_CACHE_ROOT:-${HOME}/.cache/huggingface}"
 HF_HOME="${HF_HOME:-${HF_CACHE_ROOT}}"
 HUGGINGFACE_HUB_CACHE="${HUGGINGFACE_HUB_CACHE:-${HF_CACHE_ROOT}/hub}"
 TRANSFORMERS_CACHE="${TRANSFORMERS_CACHE:-${HF_CACHE_ROOT}/transformers}"
@@ -212,8 +212,17 @@ cfg["run_name"] = run_name
 cfg["seed"] = int(seed)
 
 cfg.setdefault("data", {})
-cfg["data"]["train_file"] = str(train_file)
-cfg["data"]["dev_file"] = str(dev_norm)
+def to_repo_relative(value: str) -> str:
+    p = Path(value)
+    if not p.is_absolute():
+        return str(p)
+    try:
+        return str(p.resolve().relative_to(stage1_root.resolve()))
+    except Exception:
+        return str(p)
+
+cfg["data"]["train_file"] = to_repo_relative(str(train_file))
+cfg["data"]["dev_file"] = to_repo_relative(str(dev_norm))
 cfg["data"]["max_train_samples"] = None
 
 cfg.setdefault("model", {})
@@ -226,7 +235,7 @@ cfg["preprocessing"]["supervision_style"] = supervision_style
 cfg["preprocessing"]["final_answer_tag"] = "FINAL_ANSWER"
 
 cfg.setdefault("training", {})
-cfg["training"]["output_dir"] = str(output_dir)
+cfg["training"]["output_dir"] = to_repo_relative(str(output_dir))
 if mode == "debug":
     cfg["training"]["max_steps"] = int(debug_max_steps)
     cfg["training"]["num_train_epochs"] = 1
@@ -240,17 +249,17 @@ else:
 
 cfg.setdefault("inference", {})
 cfg["inference"]["enabled"] = True
-cfg["inference"]["checkpoint_dir"] = str(output_dir / "checkpoint-last")
-cfg["inference"]["input_file"] = str(dev_norm)
-cfg["inference"]["output_file"] = str(output_dir / "infer_predictions.jsonl")
-cfg["inference"]["summary_file"] = str(output_dir / "infer_summary.json")
+cfg["inference"]["checkpoint_dir"] = to_repo_relative(str(output_dir / "checkpoint-last"))
+cfg["inference"]["input_file"] = to_repo_relative(str(dev_norm))
+cfg["inference"]["output_file"] = to_repo_relative(str(output_dir / "infer_predictions.jsonl"))
+cfg["inference"]["summary_file"] = to_repo_relative(str(output_dir / "infer_summary.json"))
 cfg["inference"]["max_samples"] = 3 if mode == "debug" else 10
-cfg["inference"]["mode"] = "smoke_echo_gold"
+cfg["inference"]["mode"] = "dry_run_echo_reference"
 
 cfg.setdefault("logging", {})
-cfg["logging"]["log_dir"] = str(output_dir / "logs")
-cfg["logging"]["train_log_file"] = str(output_dir / "logs" / "train.log")
-cfg["logging"]["infer_log_file"] = str(output_dir / "logs" / "infer.log")
+cfg["logging"]["log_dir"] = to_repo_relative(str(output_dir / "logs"))
+cfg["logging"]["train_log_file"] = to_repo_relative(str(output_dir / "logs" / "train.log"))
+cfg["logging"]["infer_log_file"] = to_repo_relative(str(output_dir / "logs" / "infer.log"))
 
 cfg["run_infer_after_train"] = False
 
@@ -419,12 +428,16 @@ train_and_eval() {
 }
 
 pick_winner_style() {
-  "${PYTHON_BIN}" - "${RESULTS_ROOT}" <<'PY'
-import json
+  "${PYTHON_BIN}" - "${STAGE1_ROOT}" "${RESULTS_ROOT}" <<'PY'
 import sys
 from pathlib import Path
 
-root = Path(sys.argv[1])
+stage1_root = Path(sys.argv[1])
+root = Path(sys.argv[2])
+sys.path.insert(0, str(stage1_root / "scripts"))
+
+from summary_utils import latest_run_record
+
 candidates = {
     "answer_only": root / "8b_full_answer_only" / "summary.json",
     "formula_rationale": root / "8b_full_formula_rationale" / "summary.json",
@@ -433,11 +446,7 @@ metrics = {}
 for style, path in candidates.items():
     if not path.exists():
         continue
-    obj = json.loads(path.read_text(encoding="utf-8"))
-    runs = obj.get("runs", [])
-    if not runs:
-        continue
-    last = runs[-1]
+    last = latest_run_record(path)
     metrics[style] = (
         float(last.get("accuracy_adjusted", last.get("accuracy", 0.0))),
         float(last.get("parse_fail_rate_mathverify", last.get("parse_fail_rate", 1.0))),
@@ -469,8 +478,9 @@ main() {
 
   LOCAL_MODEL_4B="$(resolve_local_model_path "${MODEL_4B}")"
   LOCAL_MODEL_8B="$(resolve_local_model_path "${MODEL_8B}")"
-  log "Using model source 4B: ${LOCAL_MODEL_4B}"
-  log "Using model source 8B: ${LOCAL_MODEL_8B}"
+  log "Resolved local cache path 4B: ${LOCAL_MODEL_4B}"
+  log "Resolved local cache path 8B: ${LOCAL_MODEL_8B}"
+  log "Configs will keep model identifiers: ${MODEL_4B}, ${MODEL_8B}"
 
   log "Stage 0: data target normalization + subset generation"
   build_targets
@@ -480,12 +490,12 @@ main() {
   for model_size in 4B 8B; do
     if [[ "${model_size}" == "4B" ]]; then
       model_name="${MODEL_4B}"
-      model_source="${LOCAL_MODEL_4B}"
+      model_source="${MODEL_4B}"
       use_qlora="${USE_QLORA_4B}"
       model_tag="4b"
     else
       model_name="${MODEL_8B}"
-      model_source="${LOCAL_MODEL_8B}"
+      model_source="${MODEL_8B}"
       use_qlora="${USE_QLORA_8B}"
       model_tag="8b"
     fi
@@ -501,12 +511,12 @@ main() {
   for model_size in 4B 8B; do
     if [[ "${model_size}" == "4B" ]]; then
       model_name="${MODEL_4B}"
-      model_source="${LOCAL_MODEL_4B}"
+      model_source="${MODEL_4B}"
       use_qlora="${USE_QLORA_4B}"
       model_tag="4b"
     else
       model_name="${MODEL_8B}"
-      model_source="${LOCAL_MODEL_8B}"
+      model_source="${MODEL_8B}"
       use_qlora="${USE_QLORA_8B}"
       model_tag="8b"
     fi
@@ -529,7 +539,7 @@ main() {
   log "Stage 4: 8B Stage-B ablation (250/1000 + reuse full)"
   for sz in 250 1000; do
     run_name="8b_${sz}_${winner_style}"
-    cfg_path="$(write_config "${run_name}" "${LOCAL_MODEL_8B}" "${winner_style}" "${SUBSET_DIR}/train_${sz}.jsonl" "full" "${USE_QLORA_8B}")"
+    cfg_path="$(write_config "${run_name}" "${MODEL_8B}" "${winner_style}" "${SUBSET_DIR}/train_${sz}.jsonl" "full" "${USE_QLORA_8B}")"
     train_and_eval "${run_name}" "ablation" "${MODEL_8B}" "8B" "${winner_style}" "${sz}" "${cfg_path}"
   done
 
@@ -537,7 +547,7 @@ main() {
     log "Optional: running 4B 250/1000 matched ablation for winner style"
     for sz in 250 1000; do
       run_name="4b_${sz}_${winner_style}"
-      cfg_path="$(write_config "${run_name}" "${LOCAL_MODEL_4B}" "${winner_style}" "${SUBSET_DIR}/train_${sz}.jsonl" "full" "${USE_QLORA_4B}")"
+      cfg_path="$(write_config "${run_name}" "${MODEL_4B}" "${winner_style}" "${SUBSET_DIR}/train_${sz}.jsonl" "full" "${USE_QLORA_4B}")"
       train_and_eval "${run_name}" "ablation" "${MODEL_4B}" "4B" "${winner_style}" "${sz}" "${cfg_path}"
     done
   else

@@ -1,40 +1,41 @@
-# Unified Data Format for FinReason Project
+# Stage1 Data Notes
 
-## Overview
+This directory documents the unified JSONL schema and the repository data policy.
 
-This document describes the unified JSONL format used for all datasets in the FinReason project.  
-Each line in the JSONL file is a JSON object with the following fields.
+## Unified Record Schema
 
-## Field Descriptions
+Each JSONL row follows this structure:
 
-| Field | Type | Description |
-|-------|------|-------------|
-| `id` | string | Unique identifier of the sample. For FinQA and ConvFinQA, it may contain the original dataset ID; for MultiHiertt, it is the `uid`. |
-| `question` | string | The question (or concatenated questions for multi‑turn dialogues). |
-| `context` | string | The full document context (text + tables) from which the answer can be derived. Constructed from the original pre_text, table, post_text (FinQA/ConvFinQA) or paragraphs + tables HTML (MultiHiertt). |
-| `answer` | string | The gold answer (numeric or text). For multi‑turn dialogues, answers are concatenated with newline. |
-| `source_dataset` | string | Dataset origin: `"finqa"`, `"convfinqa"`, or `"multihiertt"`. |
-| `program` | list | The reasoning program. For FinQA it is a flat list of operations; for ConvFinQA it is a list of programs (one per turn); for MultiHiertt it is a flat list. May be empty if not available. |
-| `evidence_indices` | object / list / null | Indices of supporting evidence. - **FinQA**: list of integers (`gold_inds`). <br> - **ConvFinQA**: always `null`. <br> - **MultiHiertt**: object with `"text"` and `"table"` keys, each holding a list of indices. |
+- `id` (string): sample identifier
+- `question` (string): question text
+- `context` (string): combined text and table context
+- `answer` (string): gold answer string
+- `source_dataset` (string): one of `finqa`, `convfinqa`, `multihiertt`
+- `program` (list): program representation when available
+- `evidence_indices` (object/list/null): evidence pointers when available
 
-## Usage Notes
+## Tracked vs Regenerated Data
 
-- The `context` field contains the **raw document** (text + tables) as provided by the original dataset. For Oracle evidence construction, the `evidence_indices` field should be used to extract the relevant portions.
-- For ConvFinQA, the `question` and `answer` fields concatenate all turns. This preserves the full conversational context.
-- `program` is kept in its original representation (list of operations) to support execution evaluation.
-- All answer values are stored as strings to maintain consistency across datasets.
+Tracked minimal assets:
 
-## Files
+- `data/debug/train.jsonl`
+- `data/finqa_clean/train_debug_50.jsonl`
+- subset ID lists under `data/finqa_clean/` and `data/finqa_clean_consistent_or_corrected/`
+- cleaning summaries (`clean_summary.json`)
 
-- `train.jsonl`: Merged training set from all three datasets.
-- `dev.jsonl`: Merged validation set.
-- `debug.jsonl`: First 100 samples of the training set for quick experimentation.
+Regenerated and not tracked:
 
-## Generation
+- `data/unified/`
+- full clean split JSONL files (`train_full`, `train_250`, `train_1000`, `dev_full`)
 
-To regenerate these files, run:
+## Regeneration
+
+Use these scripts when you need to rebuild local data artifacts:
+
 ```bash
-python prepare_finqa.py
-python prepare_convfinqa.py
-python prepare_multihiertt.py
-python merge_datasets.py
+python stage1/data/prepare_finqa.py
+python stage1/data/prepare_convfinqa.py
+python stage1/data/prepare_multihiertt.py
+python stage1/data/merge_datasets.py
+python stage1/scripts/build_finqa_clean_splits.py
+```

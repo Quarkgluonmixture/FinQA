@@ -27,7 +27,7 @@ if [[ -f "${BASELINE_ROOT}/scripts/apply_dgx_spark_quirks.sh" ]]; then
   source "${BASELINE_ROOT}/scripts/apply_dgx_spark_quirks.sh"
 fi
 
-HF_CACHE_ROOT="${HF_CACHE_ROOT:-/home/jiaming/workspace/.cache/huggingface}"
+HF_CACHE_ROOT="${HF_CACHE_ROOT:-${HOME}/.cache/huggingface}"
 HF_HOME="${HF_HOME:-${HF_CACHE_ROOT}}"
 HUGGINGFACE_HUB_CACHE="${HUGGINGFACE_HUB_CACHE:-${HF_CACHE_ROOT}/hub}"
 TRANSFORMERS_CACHE="${TRANSFORMERS_CACHE:-${HF_CACHE_ROOT}/transformers}"

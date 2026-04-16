@@ -1,52 +1,38 @@
-import json
-import jsonlines
-import os
+from __future__ import annotations
 
-def prepare_finqa(input_path, output_path, dataset_name="finqa"):
-    """
-    读取 FinQA 原始 JSON 文件，转换为统一格式的 JSONL。
-    每个样本输出格式：
-    {
-        "id": "finqa_xxx",
-        "question": str,
-        "context": str (拼接 pre_text, table, post_text),
-        "answer": str (exe_ans),
-        "source_dataset": str,
-        "program": list,
-        "evidence_indices": list (gold_inds)
-    }
-    """
-    # 确保输入文件存在
+import json
+import os
+from typing import Any, Dict, List
+
+import jsonlines
+
+
+def prepare_finqa(input_path: str, output_path: str, dataset_name: str = "finqa") -> None:
+    """Convert FinQA JSON format to the unified JSONL schema."""
     if not os.path.exists(input_path):
         raise FileNotFoundError(f"Input file not found: {input_path}")
 
-    with open(input_path, "r", encoding="utf-8") as f:
-        data = json.load(f)
+    with open(input_path, "r", encoding="utf-8") as file:
+        data = json.load(file)
 
-    # 创建输出目录（如果不存在）
     os.makedirs(os.path.dirname(output_path), exist_ok=True)
 
     with jsonlines.open(output_path, mode="w") as writer:
         for idx, item in enumerate(data):
-            # 提取基础字段
             example_id = item.get("id", f"{dataset_name}_{idx}")
             pre_text = item.get("pre_text", [])
             post_text = item.get("post_text", [])
-            table = item.get("table", [])  # 表格通常是列表的列表
+            table = item.get("table", [])
 
-            # 提取 qa 部分
             qa = item.get("qa", {})
             question = qa.get("question", "")
-            program = qa.get("program", [])          # 程序列表
-            gold_inds = qa.get("gold_inds", [])      # 证据索引
-            exe_ans = qa.get("exe_ans", "")          # 执行结果，可能是数字或字符串
+            program = qa.get("program", [])
+            gold_inds = qa.get("gold_inds", [])
+            exe_ans = qa.get("exe_ans", "")
 
-            # 构建 context：将 pre_text、table、post_text 拼接
-            # 处理 pre_text 和 post_text 为字符串列表的情况
             pre_text_str = "\n".join(pre_text) if isinstance(pre_text, list) else str(pre_text)
             post_text_str = "\n".join(post_text) if isinstance(post_text, list) else str(post_text)
 
-            # 将表格转换为可读字符串（每个单元格用空格分隔，行之间换行）
             table_str = ""
             if isinstance(table, list):
                 for row in table:
@@ -57,7 +43,7 @@ def prepare_finqa(input_path, output_path, dataset_name="finqa"):
             else:
                 table_str = str(table)
 
-            context_parts = []
+            context_parts: List[str] = []
             if pre_text_str:
                 context_parts.append(pre_text_str)
             if table_str:
@@ -66,19 +52,19 @@ def prepare_finqa(input_path, output_path, dataset_name="finqa"):
                 context_parts.append(post_text_str)
             context = "\n\n".join(context_parts)
 
-            # 统一格式样本
-            unified_sample = {
-                "id": example_id,
-                "question": question,
-                "context": context,
-                "answer": str(exe_ans),
-                "source_dataset": dataset_name,
-                "program": program,
-                "evidence_indices": gold_inds
-            }
-            writer.write(unified_sample)
+            writer.write(
+                {
+                    "id": example_id,
+                    "question": question,
+                    "context": context,
+                    "answer": str(exe_ans),
+                    "source_dataset": dataset_name,
+                    "program": program,
+                    "evidence_indices": gold_inds,
+                }
+            )
+
 
 if __name__ == "__main__":
-    # 示例：处理训练集和验证集
     prepare_finqa("raw_data/finqa/train.json", "processed/finqa_train.jsonl")
     prepare_finqa("raw_data/finqa/dev.json", "processed/finqa_dev.jsonl")

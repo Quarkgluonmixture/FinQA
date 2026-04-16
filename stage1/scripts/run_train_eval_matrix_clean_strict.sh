@@ -27,7 +27,7 @@ if [[ -f "${BASELINE_ROOT}/scripts/apply_dgx_spark_quirks.sh" ]]; then
   source "${BASELINE_ROOT}/scripts/apply_dgx_spark_quirks.sh"
 fi
 
-HF_CACHE_ROOT="${HF_CACHE_ROOT:-/home/jiaming/workspace/.cache/huggingface}"
+HF_CACHE_ROOT="${HF_CACHE_ROOT:-${HOME}/.cache/huggingface}"
 HF_HOME="${HF_HOME:-${HF_CACHE_ROOT}}"
 HUGGINGFACE_HUB_CACHE="${HUGGINGFACE_HUB_CACHE:-${HF_CACHE_ROOT}/hub}"
 TRANSFORMERS_CACHE="${TRANSFORMERS_CACHE:-${HF_CACHE_ROOT}/transformers}"
@@ -225,8 +225,17 @@ cfg["run_name"] = run_name
 cfg["seed"] = int(seed)
 
 cfg.setdefault("data", {})
-cfg["data"]["train_file"] = str(train_file)
-cfg["data"]["dev_file"] = str(dev_full)
+def to_repo_relative(value: str) -> str:
+    p = Path(value)
+    if not p.is_absolute():
+        return str(p)
+    try:
+        return str(p.resolve().relative_to(Path(stage1_root).resolve()))
+    except Exception:
+        return str(p)
+
+cfg["data"]["train_file"] = to_repo_relative(str(train_file))
+cfg["data"]["dev_file"] = to_repo_relative(str(dev_full))
 cfg["data"]["max_train_samples"] = None
 
 cfg.setdefault("model", {})
@@ -239,7 +248,7 @@ cfg["preprocessing"]["supervision_style"] = supervision_style
 cfg["preprocessing"]["final_answer_tag"] = "FINAL_ANSWER"
 
 cfg.setdefault("training", {})
-cfg["training"]["output_dir"] = str(output_dir)
+cfg["training"]["output_dir"] = to_repo_relative(str(output_dir))
 cfg["training"]["learning_rate"] = float(learning_rate)
 cfg["training"]["num_train_epochs"] = int(num_train_epochs)
 cfg["training"]["max_seq_length"] = int(max_seq_length)
@@ -250,17 +259,17 @@ else:
 
 cfg.setdefault("inference", {})
 cfg["inference"]["enabled"] = True
-cfg["inference"]["checkpoint_dir"] = str(output_dir / "checkpoint-last")
-cfg["inference"]["input_file"] = str(dev_full)
-cfg["inference"]["output_file"] = str(output_dir / "infer_predictions.jsonl")
-cfg["inference"]["summary_file"] = str(output_dir / "infer_summary.json")
+cfg["inference"]["checkpoint_dir"] = to_repo_relative(str(output_dir / "checkpoint-last"))
+cfg["inference"]["input_file"] = to_repo_relative(str(dev_full))
+cfg["inference"]["output_file"] = to_repo_relative(str(output_dir / "infer_predictions.jsonl"))
+cfg["inference"]["summary_file"] = to_repo_relative(str(output_dir / "infer_summary.json"))
 cfg["inference"]["max_samples"] = 10
-cfg["inference"]["mode"] = "smoke_echo_gold"
+cfg["inference"]["mode"] = "dry_run_echo_reference"
 
 cfg.setdefault("logging", {})
-cfg["logging"]["log_dir"] = str(output_dir / "logs")
-cfg["logging"]["train_log_file"] = str(output_dir / "logs" / "train.log")
-cfg["logging"]["infer_log_file"] = str(output_dir / "logs" / "infer.log")
+cfg["logging"]["log_dir"] = to_repo_relative(str(output_dir / "logs"))
+cfg["logging"]["train_log_file"] = to_repo_relative(str(output_dir / "logs" / "train.log"))
+cfg["logging"]["infer_log_file"] = to_repo_relative(str(output_dir / "logs" / "infer.log"))
 
 cfg["run_infer_after_train"] = False
 
@@ -382,8 +391,9 @@ main() {
   prefetch_models
   LOCAL_MODEL_4B="$(resolve_local_model_path "${MODEL_4B}")"
   LOCAL_MODEL_8B="$(resolve_local_model_path "${MODEL_8B}")"
-  log "Using model source 4B: ${LOCAL_MODEL_4B}"
-  log "Using model source 8B: ${LOCAL_MODEL_8B}"
+  log "Resolved local cache path 4B: ${LOCAL_MODEL_4B}"
+  log "Resolved local cache path 8B: ${LOCAL_MODEL_8B}"
+  log "Configs will keep model identifiers: ${MODEL_4B}, ${MODEL_8B}"
 
   log "Stage 1: strict clean dataset validation"
   ensure_clean_data
@@ -405,11 +415,11 @@ main() {
 
     if [[ "${model_size}" == "4B" ]]; then
       model_name="${MODEL_4B}"
-      model_source="${LOCAL_MODEL_4B}"
+      model_source="${MODEL_4B}"
       use_qlora="${USE_QLORA_4B}"
     else
       model_name="${MODEL_8B}"
-      model_source="${LOCAL_MODEL_8B}"
+      model_source="${MODEL_8B}"
       use_qlora="${USE_QLORA_8B}"
     fi
 

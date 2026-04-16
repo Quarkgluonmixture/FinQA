@@ -30,6 +30,7 @@ from utils import (
 
 
 def parse_args() -> argparse.Namespace:
+    default_cache_dir = os.getenv("HF_HOME", str(Path.home() / ".cache" / "huggingface"))
     p = argparse.ArgumentParser(description="Zero-shot evaluation on FinQA")
     p.add_argument("--model_name", type=str, default="Qwen/Qwen3-8B")
     p.add_argument("--split", type=str, default="test")
@@ -40,7 +41,7 @@ def parse_args() -> argparse.Namespace:
     p.add_argument("--atol", type=float, default=1e-3)
     p.add_argument("--rtol", type=float, default=1e-3)
     p.add_argument("--results_dir", type=str, default="results")
-    p.add_argument("--cache_dir", type=str, default="/workspace/.cache/huggingface")
+    p.add_argument("--cache_dir", type=str, default=default_cache_dir)
     p.add_argument("--dataset_name", type=str, default="", help="Optional HF dataset name override")
     p.add_argument("--dataset_config", type=str, default="", help="Optional HF dataset config")
     p.add_argument("--dataset_split", type=str, default="", help="Optional HF split override")

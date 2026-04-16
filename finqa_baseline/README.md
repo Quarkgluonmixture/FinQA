@@ -1,126 +1,65 @@
 # finqa_baseline
 
-Reproducible zero-shot baseline evaluation pipeline for COMP0087.
+Evaluation pipeline for FinQA zero-shot and post-training adapter runs.
 
 ## Setup
 
 ```bash
-cd /home/jiaming/workspace/FinQA/finqa_baseline
 bash setup.sh
 source .venv/bin/activate
 ```
 
-## Cache (important on shared machines)
+## Cache Configuration
+
+Defaults are portable and environment-based.
 
 ```bash
-mkdir -p /home/jiaming/workspace/.cache/huggingface/{hub,transformers}
-export HF_HOME=/home/jiaming/workspace/.cache/huggingface
-export HUGGINGFACE_HUB_CACHE=$HF_HOME/hub
-export TRANSFORMERS_CACHE=$HF_HOME/transformers
+export CACHE_DIR="${CACHE_DIR:-$HOME/.cache/huggingface}"
+export HF_HOME="${HF_HOME:-$CACHE_DIR}"
+export HUGGINGFACE_HUB_CACHE="${HUGGINGFACE_HUB_CACHE:-$CACHE_DIR/hub}"
+export TRANSFORMERS_CACHE="${TRANSFORMERS_CACHE:-$CACHE_DIR/transformers}"
 ```
 
-## DGX Spark quirks (authoritative)
-
-All runs on this machine must follow:
-- `/home/jiaming/workspace/FinQA/DGX_SPARK_MACHINE_QUIRKS.md`
-
-The run scripts now auto-apply the required env via:
-- `scripts/apply_dgx_spark_quirks.sh`
-
-Equivalent variables:
-
-```bash
-export CUDA_MPS_PIPE_DIRECTORY=""
-export CUDA_MPS_LOG_DIRECTORY=""
-export PYTORCH_NVML_BASED_CUDA_CHECK=1
-export HF_HUB_DISABLE_XET=1
-```
-
-## New baseline defaults (FinQA)
-
-`eval_finqa.py` now defaults to:
-
-- `thinking=true`
-- answer format: `[FINAL_ANSWER]...[/FINAL_ANSWER]`
-- primary evaluator: `math_verify`
-- `max_new_tokens=256`
-
-Legacy numeric evaluator is still computed and reported for side-by-side comparison.
-
-## FinQA eval examples
+## Single Evaluation Example
 
 ```bash
 python eval_finqa.py \
   --model_name Qwen/Qwen3-8B \
   --split test \
   --setting oracle \
-  --cache_dir /home/jiaming/workspace/.cache/huggingface
+  --cache_dir "${CACHE_DIR:-$HOME/.cache/huggingface}"
 ```
 
-```bash
-python eval_finqa.py \
-  --model_name Qwen/Qwen3-8B \
-  --split test \
-  --setting full \
-  --cache_dir /home/jiaming/workspace/.cache/huggingface
-```
-
-Override evaluator/format if needed:
-
-```bash
-python eval_finqa.py ... --evaluator numeric_legacy --answer_format plain_numeric
-```
-
-Evaluate a LoRA adapter on top of a base model:
+## Adapter Evaluation Example
 
 ```bash
 python eval_finqa.py \
   --model_name Qwen/Qwen3-8B \
   --adapter_path /path/to/checkpoint-last \
   --setting oracle \
+  --split test \
   --no-enable_thinking \
   --answer_format final_answer_tag \
   --final_answer_tag FINAL_ANSWER
 ```
 
-## Robust verification matrix (thinking true + false)
+## Matrix Entrypoints
 
-Runs:
+- `run_verification_matrix.sh`: baseline matrix and robust verification report
+- `run_verification_matrix_loop.sh`: continuous loop wrapper
+- `run_forever_no_guard.sh`: backward-compatible wrapper (deprecated)
 
-1. regression checks
-2. 8 FinQA runs (`Qwen3-8B/4B x oracle/full x thinking true/false`)
-3. per-mode reports + robust verification summary
+## Output Policy
 
-```bash
-bash run_verification_matrix.sh
-```
+Runtime outputs are generated under `results/` and `logs/` but are excluded from version control except for directory keep files.
 
-Main outputs:
+## Summary Fields
 
-- `results/robust_verification_report.md`
-- `results/robust_verification_summary.json`
+`summary.json` includes compatibility metrics such as:
 
-## GPU guard auto-start (optional)
-
-```bash
-nohup bash gpu_guard_autorun.sh > logs/gpu_guard_console.log 2>&1 &
-echo $! > logs/gpu_guard_autorun.pid
-```
-
-## Outputs
-
-- `results/summary.json`
-- `results/finqa_<model>_<setting>_<split>.jsonl`
-- `results/regression_final_answer_mathverify.md`
-- `results/regression_final_answer_mathverify.json`
-- `results/error_cases.md`
-- `results/final_report.md`
-
-## Key result fields
-
-Per-run summary now includes:
-
-- `accuracy_mathverify`, `parse_fail_rate_mathverify`
-- `accuracy_legacy`, `accuracy_legacy_base`, `parse_fail_rate_legacy`
-- `tag_status_counts` (`closed` / `open_only` / `absent`)
-- `enable_thinking`, `answer_format`, `final_answer_tag`, `evaluator`
+- `accuracy_mathverify`
+- `accuracy_legacy`
+- `accuracy_legacy_base`
+- `parse_fail_rate_mathverify`
+- `parse_fail_rate_legacy`
+- `tag_status_counts`

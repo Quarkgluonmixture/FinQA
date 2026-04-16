@@ -25,7 +25,7 @@ export CUDA_MPS_LOG_DIRECTORY=""
 export PYTORCH_NVML_BASED_CUDA_CHECK=1
 
 # Unified HF cache env (can be overridden by caller env)
-HF_CACHE_ROOT="${HF_CACHE_ROOT:-/home/jiaming/workspace/.cache/huggingface}"
+HF_CACHE_ROOT="${HF_CACHE_ROOT:-${HOME}/.cache/huggingface}"
 export HF_HOME="${HF_HOME:-${HF_CACHE_ROOT}}"
 export HUGGINGFACE_HUB_CACHE="${HUGGINGFACE_HUB_CACHE:-${HF_CACHE_ROOT}/hub}"
 export TRANSFORMERS_CACHE="${TRANSFORMERS_CACHE:-${HF_CACHE_ROOT}/transformers}"

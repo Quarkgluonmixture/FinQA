@@ -1,45 +1,17 @@
-# COMP0087 Stage 1
+# Stage 1 SFT Pipeline
 
-## Overview
+This directory contains the training pipeline used for task-specific SFT experiments.
 
-This repository contains the Stage 1 SFT pipeline for the COMP0087 group project.
+## Contents
 
-The current integrated version supports:
+- `train_sft.py`: main training entrypoint
+- `run_infer.py`: post-training dry-run inference entrypoint
+- `configs/`: base configs (`debug.yaml`, `small.yaml`, `full.yaml`)
+- `scripts/`: orchestration scripts and utilities
+- `src/`: preprocessing, data loading, config, and trainer modules
+- `data/`: minimal tracked reproducibility data (debug samples, subset IDs, summaries)
 
-- config-based training entry
-- debug / small / full config files
-- data loading and preprocessing
-- LoRA-based Stage 1 training
-- checkpoint saving
-- minimal post-training inference verification
-
-The debug smoke pipeline has been verified locally.
-
-## Repository Structure
-
-- `configs/`: yaml configs for debug / small / full runs
-- `data/`: debug data and dataset preparation scripts
-- `outputs/`: local checkpoints and run outputs
-- `scripts/`: helper scripts for preprocessing / debug / training
-- `src/`: core implementation
-- `make_ablation_configs.py`: helper script for config generation
-- `member6_log_and_run_guide.md`: additional run notes
-- `requirements.txt`: python dependencies
-- `run_infer.py`: minimal post-training inference entry
-- `train_sft.py`: main Stage 1 training entry
-
-## Environment Setup
-
-Install dependencies with:
-
-```bash
-pip install -r requirements.txt
-```
-
-If your machine does not provide `python` (for example DGX Spark), use `python3`
-or create `.venv` and run via `./.venv/bin/python`.
-
-Recommended setup on DGX Spark:
+## Setup
 
 ```bash
 python3 -m venv .venv
@@ -47,177 +19,45 @@ python3 -m venv .venv
 ./.venv/bin/pip install -r requirements.txt
 ```
 
-## Config Files
-
-Current config files include:
-
-- `configs/debug.yaml` — smallest local smoke test config
-- `configs/small.yaml` — small-scale run config
-- `configs/full.yaml` — full run config
-
-For first-time verification, always start with:
-
-```text
-configs/debug.yaml
-```
-
-## Data
-
-### Debug data
-
-The debug smoke test uses:
-
-```text
-data/debug/train.jsonl
-```
-
-### Data preparation scripts
-
-The repository also includes data preparation utilities under `data/`, such as:
-
-- `prepare_finqa.py`
-- `prepare_convfinqa.py`
-- `prepare_multihiertt.py`
-- `merge_datasets.py`
-
-## Main Entry Points
-
-### Training entry
+## Quick Sanity Check
 
 ```bash
 bash scripts/run_debug.sh
 ```
 
-### Inference entry
+Expected outputs:
 
-```bash
-python3 run_infer.py --help
-```
+- `outputs/debug_run/checkpoint-last`
+- `outputs/debug_run/infer_predictions.jsonl`
+- `outputs/debug_run/infer_summary.json`
 
-## Verified Debug Smoke Pipeline
+## Core Scripts
 
-The following command has been verified locally:
+- `scripts/run_train.sh`: run training with a single config
+- `scripts/run_train_eval_matrix.sh`: matrix orchestration
+- `scripts/run_train_eval_matrix_clean_strict.sh`: strict-clean matrix
+- `scripts/run_eval_matrix_prompt_aligned.sh`: prompt-aligned evaluation matrix
+- `scripts/run_8b_fullsteps_train_eval.sh`: full-steps retrain + dual evaluation
 
-```bash
-bash scripts/run_debug.sh
-```
+## Inference Mode Compatibility
 
-This debug run successfully completed:
+The canonical dry-run mode is:
 
-- config loading
-- debug data loading
-- preprocessing
-- trainer initialization
-- training
-- checkpoint saving
-- automatic minimal post-training inference check
+- `dry_run_echo_reference`
 
-## Manual Minimal Inference Check
+Legacy value `smoke_echo_gold` is still accepted and mapped automatically with a deprecation warning.
 
-The following command has also been verified locally:
+## Config Contract
 
-```bash
-python3 run_infer.py \
-  --config configs/debug.yaml \
-  --checkpoint_dir outputs/debug_run/checkpoint-last \
-  --input_file data/debug/train.jsonl \
-  --output_file outputs/debug_run/manual_infer_predictions.jsonl
-```
+- Paths in configs should be repository-relative.
+- Cache and machine-specific paths must be injected via environment variables.
+- Generated configs are runtime artifacts and are not tracked.
 
-This command successfully generated prediction output and summary files.
+## Notes
 
-## Expected Outputs
+Large runtime artifacts are intentionally excluded from version control:
 
-For a verified debug run, outputs are written under:
-
-```text
-outputs/debug_run/
-```
-
-Typical files include:
-
-- `checkpoint-5/`
-- `checkpoint-last/`
-- `infer_predictions.jsonl`
-- `manual_infer_predictions.jsonl`
-- `infer_summary.json`
-- `run_meta.json`
-- `trainer_state.json`
-- `processed_preview.jsonl`
-
-These files are local run artifacts and should generally not be committed to GitHub.
-
-## Example Workflow
-
-### Step 1: install dependencies
-
-```bash
-pip install -r requirements.txt
-```
-
-### Step 2: run debug training
-
-```bash
-bash scripts/run_debug.sh
-```
-
-### Step 3: run manual inference check
-
-```bash
-python3 run_infer.py \
-  --config configs/debug.yaml \
-  --checkpoint_dir outputs/debug_run/checkpoint-last \
-  --input_file data/debug/train.jsonl \
-  --output_file outputs/debug_run/manual_infer_predictions.jsonl
-```
-
-## Scripts
-
-Helper scripts are located in `scripts/`.
-
-Examples include:
-
-- `scripts/run_debug.sh`
-- `scripts/run_train.sh`
-- `scripts/preprocess.py`
-- `scripts/prompting.py`
-
-## Notes for Team Members
-
-- Use `configs/debug.yaml` first before trying larger configs.
-- Do not upload large local checkpoints or output artifacts to GitHub.
-- Keep `outputs/` ignored by git.
-- Update README if entry points, config paths, or output paths change.
-- Use the verified commands above as the current baseline smoke test.
-
-## Current Status
-
-Current integrated status:
-
-- Stage 1 repository structure completed
-- debug / small / full config files available
-- training entry verified
-- minimal inference entry verified
-- debug smoke pipeline verified locally
-
-## Recommended .gitignore
-
-```gitignore
-outputs/
-*.pt
-*.bin
-*.safetensors
-__pycache__/
-*.pyc
-.DS_Store
-```
-
-## Handover Note
-
-This repository is currently in an integrated Stage 1 state with a verified local debug pipeline.
-
-For handover or further testing, start from:
-
-```bash
-bash scripts/run_debug.sh
-```
+- `outputs/`
+- `logs/`
+- `reports/`
+- generated configs and regenerated large data snapshots

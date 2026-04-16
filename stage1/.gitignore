@@ -1,6 +1,13 @@
+# Local runtime artifacts
 outputs/
+logs/
+reports/
 __pycache__/
 *.pyc
-.DS_Store
 .venv/
+.DS_Store
+
+# Regenerated data cache
 data/unified/
+configs/generated/
+configs/generated_clean_strict/

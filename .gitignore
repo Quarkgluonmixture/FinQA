@@ -15,19 +15,18 @@ venv/
 ENV/
 env/
 
-# Cache
+# Caches
 .cache/
 *.cache
+.pytest_cache/
+.mypy_cache/
 
-# IDE
+# IDE / editor
 .vscode/
 .idea/
 *.swp
 *.swo
 *~
-
-# Logs
-*.log
 
 # OS
 .DS_Store
@@ -37,22 +36,26 @@ Thumbs.db
 tmp_*/
 *.tmp
 
-# FinQA local runtime outputs
-finqa_baseline/logs/*.pid
-finqa_baseline/logs/*console*.log
-finqa_baseline/results/sanity/
-finqa_baseline/results/smoke/
-finqa_baseline/results/thinking_true/
-finqa_baseline/results/sft_matrix/
-finqa_baseline/results/robust_verification_report.md
-finqa_baseline/results/robust_verification_summary.json
+# Local runtime artifacts
+*.log
+finqa_baseline/logs/
+!finqa_baseline/logs/.gitkeep
+finqa_baseline/results/*
+!finqa_baseline/results/.gitkeep
 finqa_baseline/results_recovered/
-
-# Stage1 large artifacts (checkpoints ~3.2G, keep ignored)
 stage1/logs/
-stage1/configs/generated/
 stage1/outputs/
+stage1/reports/
+stage1/configs/generated/
+stage1/configs/generated_clean_strict/
+
+# Large regenerated data snapshots (keep only debug + ids + summaries)
+stage1/data/unified/
+stage1/data/finqa_clean/*.jsonl
+!stage1/data/finqa_clean/train_debug_50.jsonl
+stage1/data/finqa_clean_consistent_or_corrected/*.jsonl
+!stage1/data/finqa_clean_consistent_or_corrected/train_debug_50.jsonl
 
 # Local-only files
-DGX_SPARK_MACHINE_QUIRKS.md
 .claude/
+docs/DGX_SPARK_MACHINE_QUIRKS.md

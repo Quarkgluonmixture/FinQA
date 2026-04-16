@@ -4,7 +4,7 @@ set -euo pipefail
 # Wait until GPU is sufficiently free, then start FinQA verification matrix.
 #
 # Usage:
-#   cd /home/jiaming/workspace/FinQA/finqa_baseline
+#   cd /path/to/FinQA/finqa_baseline
 #   nohup bash gpu_guard_autorun.sh > logs/gpu_guard_console.log 2>&1 &
 #   echo $! > logs/gpu_guard_autorun.pid
 #
