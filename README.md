@@ -1,5 +1,7 @@
 # FinReason-Lab — Thinking-Aware Baselines and Low-Data Post-Training for Financial Numerical Reasoning
 
+**English** · [简体中文](./README.zh-CN.md)
+
 > A controlled study of **when supervised fine-tuning helps — and when it quietly hurts**.
 > Using FinQA as a locked testbed, we show that a smaller model (Qwen3-4B) *recovers* under
 > low-data SFT while a larger one (Qwen3-8B) *does not*, and trace the difference to
